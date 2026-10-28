@@ -3,6 +3,7 @@
 Sources:
     hk01: 香港01 港聞 zone (web-data.api.hk01.com JSON API)
     oncc: 東網 港聞 (hk.on.cc news index HTML)
+    pulse: Pulse HK (pulsehknews.com WordPress REST API)
 
 Standard library only. Writes one XML file per source into the output folder.
 
@@ -36,6 +37,11 @@ HK01_FIRST_OFFSET = 99999999990
 HK01_PAGES = 4
 ONCC_INDEX = "https://hk.on.cc/hk/news/index.html"
 ONCC_BASE = "https://hk.on.cc/hk/bkn"
+# The site's HTML and /feed/ sit behind a bot check; the public WordPress REST API does not.
+PULSE_API = (
+    "https://pulsehknews.com/wp-json/wp/v2/posts"
+    "?per_page=30&_fields=date_gmt,link,title,excerpt"
+)
 DESCRIPTION_CHARS = 200
 
 Item = Dict[str, object]
@@ -96,6 +102,23 @@ def oncc_items() -> List[Item]:
     return items
 
 
+def _strip_html(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html.unescape(text or ""))).strip()
+
+
+def pulse_items() -> List[Item]:
+    """Return the latest posts of Pulse HK (all categories)."""
+    items: List[Item] = []
+    for post in json.loads(fetch_text(PULSE_API)):
+        items.append({
+            "title": _strip_html(post["title"]["rendered"]),
+            "link": post["link"],
+            "date": datetime.fromisoformat(post["date_gmt"]).replace(tzinfo=timezone.utc),
+            "description": _strip_html(post["excerpt"]["rendered"])[:DESCRIPTION_CHARS],
+        })
+    return items
+
+
 def to_rss(title: str, site: str, items: List[Item]) -> str:
     """Serialize items as an RSS 2.0 document, newest first, without duplicate links."""
     seen, rows = set(), []
@@ -126,6 +149,7 @@ def to_rss(title: str, site: str, items: List[Item]) -> str:
 SOURCES: Dict[str, Dict[str, object]] = {
     "hk01-news.xml": {"title": "香港01 港聞", "site": "https://www.hk01.com/zone/1/港聞", "fetch": hk01_items},
     "oncc-news.xml": {"title": "東網 港聞", "site": ONCC_INDEX, "fetch": oncc_items},
+    "pulsehk.xml": {"title": "Pulse HK", "site": "https://pulsehknews.com/", "fetch": pulse_items},
 }
 
 

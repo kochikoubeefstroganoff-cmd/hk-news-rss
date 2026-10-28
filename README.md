@@ -6,6 +6,7 @@
 |---|---|---|
 | 香港01 港聞 | https://www.hk01.com/zone/1/港聞 （API） | `docs/hk01-news.xml` |
 | 東網 港聞 | https://hk.on.cc/hk/news/index.html （`district="香港"` のみ） | `docs/oncc-news.xml` |
+| Pulse HK | https://pulsehknews.com/ （WordPress REST API、全カテゴリの最新30件） | `docs/pulsehk.xml` |
 
 - GitHub Actions（`.github/workflows/build-feeds.yml`）が1時間ごとに `make_feeds.py` を実行し、変更があれば `docs/` をコミットする。
 - GitHub Pages は `main` ブランチの `/docs` から配信する。
